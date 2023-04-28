@@ -1,20 +1,30 @@
-sizeX = 5
-sizeY = 5
+sizeX = 10
+sizeY = 10
 startX = 0
 startY = 0
 
 /*Programa de prueba*/
 
 programa {
-	MoverArriba
 	PintarNegro
 	MoverArriba
 	PintarNegro
 	MoverArriba
-	PintarVerde
+	PintarNegro
 	MoverDerecha
-	PintarRojo
-	MoverIzquierda
 	MoverAbajo
-	Limpiar
+	MoverAbajo
+}
+
+procedimiento Chau() {
+  Hola()
+}
+
+procedimiento Hola() {
+  MoverArriba
+  MoverDerecha
+}
+
+repetir 10 veces {
+  MoverAbajo
 }
