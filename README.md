@@ -7,12 +7,12 @@ Para correr el programa, es necesario instalar Processing. https://processing.or
 El código a ejecutar por el programa será el ubicado en el archivo data/qdraw.txt.
 Para su correcta interpretación, este deberá tener unas lineas adicionales al comienzo que serán utilizadas solamente por el intérprete para definir ciertos prerequisitos:
 
-`
+```
     sizeX = <valor>
-    sizeX = <valor>
+    sizeY = <valor>
     startX = <valor>
     startY = <valor>
-`
+```
 
 Estas lineas representan el tamaño del tablero a utilizar en sus dos ejes, y la posición del cursor al inicio.
 
