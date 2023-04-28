@@ -11,8 +11,8 @@
 /************************************************************************************/
 
 import java.util.Arrays;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 String[] lines;
 int sizeX, sizeY, startX, startY, posX, posY;
@@ -26,38 +26,41 @@ String pn = "PintarNegro";
 String pr = "PintarRojo";
 String pv = "PintarVerde";
 String lim = "Limpiar";
-String prog = "programa";
 String[] punt = {"{", "}", "(", ")", "/*", "*/"};
 //String[] prerec = {"sizeX", "sizeY", "startX", "startY"};
 
+/* Draw variables */
+int x = 0;
+int y = 0;
+int li = 0;
+int frameRateValue = 5;
 
 /********************* Classes *********************/
 
 class Prog {
-  int start, end;
-  void set(int s, int e) {
-    start = s;
-    end = e;
+  String code;
+  void set(String c) {
+    code = c;
   }
 }
 class Proc {
-  int start, end;
-  void set(int s, int e, String name) {
-    start = s;
-    end = e;
-    name = name;
+  String code, name;
+  void set(String n, String c) {
+    name = n;
+    code = c;
   }
 }
 class Loop {
-  int start, end;
-  void set(int s, int e) {
-    start = s;
-    end = e;
+  String code;
+  int times;
+  void set(int t, String c) {
+    times = t;
+    code = c;
   }
 }
 
-Proc[] procList;
-Loop[] loopList;
+Proc procList[] = new Proc[32];
+Loop loopList[] = new Loop[32];
 
 /********************* Setup *********************/
 
@@ -65,33 +68,25 @@ void setup() {
   size(500, 500);
   background(255);
   stroke(#d8d8d8);
-  frameRate(30);
+  frameRate(frameRateValue);
 
   lines = loadStrings("qdraw.txt");
   
-  //Verify code
+  /* Check syntax errors (WIP) */
+  verifySyntax(lines);
+  
+  /* Read code structures */
+  readCode(lines);
+  
   for (int i = 0 ; i < lines.length; i++) {
     startBoard(lines[i]);
-    //Agregar syntax errors...
-    //Agregar lectura de procedimientos, loops, condiciones
-    //try/catchs
     
-    /*if (proc?) {
-      append(procList, proc)
-    }*/
+    // try/catchs
     
-    println(lines[i]);
+    // println(lines[i]);
   }
-  readSyntax(lines);
-  /*
-  String[] linesStrip = Arrays.copyOfRange(lines, 0, 5);
-  println("hola");
-  
-  for (int i = 0 ; i < linesStrip.length; i++) {
-    println(linesStrip[i]);
-  }*/
 
-  //Initialize board
+  /* Initialize board */
   board = new color[sizeY][sizeX];
   for (int x = 0; x < sizeX; x++) {
     for (int y = 0; y < sizeY; y++) {
@@ -99,47 +94,62 @@ void setup() {
     }
   }
   
+  posX = startX;
+  posY = startY;
 }
 
 /********************* Draw *********************/
 
 void draw() {
-  posX = startX;
-  posY = (sizeY-1)-startY; //Invert Y axis
+  int centerStartX = (width - 25*sizeX)/2;
+  int centerStartY = (height - 25*sizeY)/2;
   
-  //Read code, write board (Execute)
-  for (int i = 0 ; i < lines.length; i++) {
-    movePos(lines[i]);
+  /*
+  
+  Esto recibirá las lineas del bloque programa.
+  Se deben compilar las lineas antes. Empezando por programa, y reemplazando las lineas de cada procedimiento 
+  que aparezca con su respectivo contenido. Se hara esto while hayan invocaciones de estructuras de codigos.
+  Se terminará con un código únicamente de comandos, el cual será ejecutado linea por linea y dibujado.
+  
+  */
+  
+  //lines -> programa (wip)
+  
+  /* Execute commands, write board, draw */
+  if(li < lines.length) {
+    movePos(lines[li]);
     
     if(posX < 0 || posX > sizeX-1) {
       println("Error: Fuera de límite en el eje X");
       exit();
     }
-    
     if(posY < 0 || posX > sizeY-1) {
       println("Error: Fuera de límite en el eje Y");
       exit();
     }
+    board[posY][posX] = paint(lines[li], board[posY][posX]);
     
-    board[posY][posX] = paint(lines[i], board[posY][posX]);
-  }
-  
-  //Draw board
-  int centerStartX = (width - 25*sizeX)/2;
-  int centerStartY = (height - 25*sizeY)/2;
-  
-  for (int x = 0; x < sizeX; x++) {
-    for (int y = 0; y < sizeY; y++) {
-      fill(board[y][x]);
-      stroke(#d8d8d8);
-      if (x == posX && y == posY) {
-        stroke(#ff7601);
+    background(255);
+    for (int x = 0; x < sizeX; x++) {
+      for (int y = 0; y < sizeY; y++) {
+        fill(board[y][x]);
+        stroke(#d8d8d8);
+        square(centerStartX + x*25, centerStartY + y*25, 25); //Variable size?
       }
-      square(centerStartX + x*25, centerStartY + y*25, 25); //Variable size?
     }
+    
+    strokeWeight(2);
+    noFill();
+    stroke(#03a9fc);
+    square(centerStartX + startX*25, centerStartY + startY*25, 25);
+    stroke(#ff7601);
+    square(centerStartX + posX*25, centerStartY + posY*25, 25);
+    strokeWeight(1);
+    
+    li++;
+    return;
   }
   
-  //Final cursor
   String text = String.format("Finalizado en (%d, %d)", posX, sizeY-posY-1);
   textAlign(CENTER, BOTTOM);
   fill(0);
@@ -166,21 +176,77 @@ void startBoard(String input) {
   if(input.contains("startY")) {
       String[] temp = split(input, " = ");
       startY = int(temp[1]);
+      startY = (sizeY-1)-startY; //Invert Y axis
   }
 }
 
-void readSyntax(String[] linesArr) {
-  String text;
-  text = join(linesArr, " ");
-  println(text);
+void verifySyntax(String[] linesArr) {
   
-  String regex = "procedimiento";
-  Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL );
-  Matcher matcher = pattern.matcher(text);
-  boolean matchFound = matcher.find();
-  println(matchFound);
 }
 
+void readCode(String[] linesArr) {
+  String text, regex;
+  Pattern p;
+  Matcher m;
+  Prog prog;
+  
+  text = join(linesArr, " ");
+  //println(text);}
+  int count = 0;
+  
+  //Program
+  regex = "programa\\s+\\{([\\s\\w()]+)\\}";
+  p = Pattern.compile(regex, Pattern.DOTALL );
+  m = p.matcher(text);
+  
+  m.find();
+  println("Prog" + count);
+  println(m.group(1)); //Code
+  
+  prog = new Prog();
+  prog.set(m.group(1));
+  
+  //Procedures
+  regex = "procedimiento\\s(\\w+\\(\\))\\s+\\{([\\s\\w()]+)\\}";
+  p = Pattern.compile(regex, Pattern.DOTALL );
+  m = p.matcher(text);
+
+  while(m.find()) {
+    println("Proc" + count);
+    println(m.group(1)); //Name
+    println(m.group(2)); //Code
+    
+    Proc obj = new Proc();
+    obj.set(m.group(1), m.group(2));
+    procList[count] = obj;
+
+    count++;
+  }
+  
+  count = 0;
+  
+  //Loops
+  regex = "repetir\\s+(\\d+)\\s+veces\\s+\\{([\\s\\w()]+)\\}";
+  p = Pattern.compile(regex, Pattern.DOTALL );
+  m = p.matcher(text);
+
+  while(m.find()) {
+    println("Loop" + count);
+    println(m.group(1)); //N
+    println(m.group(2)); //Code
+    
+    Loop obj = new Loop();
+    obj.set(int(m.group(1)), m.group(2));
+    loopList[count] = obj;
+    
+    count++;
+  }
+  count = 0;
+}
+
+String compileCode() {
+  return "programa acá"; 
+}
 
 /********************* Draw methods *********************/
 
@@ -216,3 +282,11 @@ void movePos(String input) {
       posX++;
   }
 }
+
+/* Agarrar rango de lineas
+  String[] linesStrip = Arrays.copyOfRange(lines, 0, 5);
+  println("hola");
+  
+  for (int i = 0 ; i < linesStrip.length; i++) {
+    println(linesStrip[i]);
+  }*/
