@@ -33,7 +33,7 @@ String[] punt = {"{", "}", "(", ")", "/*", "*/"};
 int x = 0;
 int y = 0;
 int li = 0;
-int frameRateValue = 5;
+int frameRateValue = 1;
 
 /********************* Classes *********************/
 
@@ -80,10 +80,7 @@ void setup() {
   
   for (int i = 0 ; i < lines.length; i++) {
     startBoard(lines[i]);
-    
-    // try/catchs
-    
-    // println(lines[i]);
+    //println(lines[i]);
   }
 
   /* Initialize board */
@@ -94,6 +91,9 @@ void setup() {
     }
   }
   
+  /* Compile code structures */
+  lines = compileCode(lines);
+  
   posX = startX;
   posY = startY;
 }
@@ -103,17 +103,6 @@ void setup() {
 void draw() {
   int centerStartX = (width - 25*sizeX)/2;
   int centerStartY = (height - 25*sizeY)/2;
-  
-  /*
-  
-  Esto recibirá las lineas del bloque programa.
-  Se deben compilar las lineas antes. Empezando por programa, y reemplazando las lineas de cada procedimiento 
-  que aparezca con su respectivo contenido. Se hara esto while hayan invocaciones de estructuras de codigos.
-  Se terminará con un código únicamente de comandos, el cual será ejecutado linea por linea y dibujado.
-  
-  */
-  
-  //lines -> programa (wip)
   
   /* Execute commands, write board, draw */
   if(li < lines.length) {
@@ -137,6 +126,10 @@ void draw() {
         square(centerStartX + x*25, centerStartY + y*25, 25); //Variable size?
       }
     }
+    
+    textAlign(CENTER, BOTTOM);
+    fill(0);
+    text(lines[li], width/2, centerStartY + 25*sizeY + 25);
     
     strokeWeight(2);
     noFill();
@@ -190,7 +183,7 @@ void readCode(String[] linesArr) {
   Matcher m;
   Prog prog;
   
-  text = join(linesArr, " ");
+  text = join(linesArr, "\n");
   //println(text);}
   int count = 0;
   
@@ -207,7 +200,7 @@ void readCode(String[] linesArr) {
   prog.set(m.group(1));
   
   //Procedures
-  regex = "procedimiento\\s(\\w+\\(\\))\\s+\\{([\\s\\w()]+)\\}";
+  regex = "procedimiento\\s(\\w+)(?:\\(\\))\\s+\\{([\\s\\w()]+)\\}";
   p = Pattern.compile(regex, Pattern.DOTALL );
   m = p.matcher(text);
 
@@ -222,7 +215,6 @@ void readCode(String[] linesArr) {
 
     count++;
   }
-  
   count = 0;
   
   //Loops
@@ -244,8 +236,62 @@ void readCode(String[] linesArr) {
   count = 0;
 }
 
-String compileCode() {
-  return "programa acá"; 
+String[] compileCode(String[] linesArr) {
+  String text, regex;
+  Pattern p;
+  Matcher m;
+  text = join(linesArr, "\n");
+  //println(text);
+  
+  /* Program */
+  regex = "programa\\s+\\{([\\s\\w()]+)\\}";
+  p = Pattern.compile(regex, Pattern.DOTALL );
+  m = p.matcher(text);
+  m.find();
+  text = m.group(0);
+  
+  /* Comments */ 
+  regex = "\\/\\*[\\s\\w()]+\\*\\/";
+  p = Pattern.compile(regex, Pattern.DOTALL );
+  m = p.matcher(text);
+  while(m.find()) {
+    text = text.replace(m.group(0), "");
+  }
+  
+  /* Procedures */
+  for(int i = 0; i < procList.length; i++) {
+    if(procList[i] == null) {break;}
+    
+    regex = String.format("%s\\(\\)(?!\\s+\\{)", procList[i].name);
+
+    p = Pattern.compile(regex, Pattern.DOTALL );
+    m = p.matcher(text);
+    while(m.find()) {
+      text = text.replace(m.group(0), procList[i].name + procList[i].code);
+      println(text);
+    }
+  }
+  
+  /* Loops */
+  
+  
+  /*
+  //Empty lines 
+  text = text.trim();
+  regex = "^\\s*$";
+  p = Pattern.compile(regex, Pattern.MULTILINE );
+  m = p.matcher(text);
+  while(m.find()) {
+    text = text.replace(m.group(0), "");
+  }
+  */
+  
+  text = text.replace("}", "");
+  String[] result = split(text, "\n");
+  for(int i= 0; i< result.length; i++) {
+    println(result[i]);
+  }
+  return result;
 }
 
 /********************* Draw methods *********************/
@@ -282,11 +328,3 @@ void movePos(String input) {
       posX++;
   }
 }
-
-/* Agarrar rango de lineas
-  String[] linesStrip = Arrays.copyOfRange(lines, 0, 5);
-  println("hola");
-  
-  for (int i = 0 ; i < linesStrip.length; i++) {
-    println(linesStrip[i]);
-  }*/

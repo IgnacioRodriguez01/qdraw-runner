@@ -6,25 +6,20 @@ startY = 0
 /*Programa de prueba*/
 
 programa {
-	PintarNegro
-	MoverArriba
-	PintarNegro
-	MoverArriba
-	PintarNegro
-	MoverDerecha
-	MoverAbajo
-	MoverAbajo
+	Chau()
 }
 
 procedimiento Chau() {
-  Hola()
+	Hola()
+	Hola()
 }
 
 procedimiento Hola() {
-  MoverArriba
-  MoverDerecha
+	MoverArriba
+	MoverDerecha
+	Adio()
 }
 
-repetir 10 veces {
-  MoverAbajo
+procedimiento Adio() {
+	PintarVerde
 }
