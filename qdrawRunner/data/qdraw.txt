@@ -18,9 +18,12 @@ programa{
 }
 
 procedimiento Iniciar(){
-	repetir 2 veces {
-		PintarRojo
-		MoverArriba
+	si (estaVacia?) entonces {
+  		repetir 2 veces {
+			PintarRojo
+			MoverArriba
 		
+		}
 	}
+	
 }

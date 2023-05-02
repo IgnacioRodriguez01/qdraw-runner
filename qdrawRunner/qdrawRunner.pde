@@ -46,11 +46,18 @@ int li = 0;
 
 class Block {
   int start, end;
+  String type, content;
   void start(int s) {
     start = s;
   }
   void end(int e) {
     end = e;
+  }
+  void type(String t) {
+    type = t;
+  }
+  void content(String c) {
+    content = c;
   }
 }
 class Prog {
