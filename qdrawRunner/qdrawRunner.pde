@@ -96,11 +96,11 @@ void setup() {
 
   lines = loadStrings("qdraw.txt");
   
-  /* Read code structures */
-  blocksTest(lines);
-  
   /* Check syntax errors (WIP) */
   verifySyntax(lines);
+  
+  /* Read code structures */
+  lines = nestResolve(lines);
   
   /* Read code structures */
   readCode(lines);
@@ -119,7 +119,7 @@ void setup() {
   }
   
   /* Compile code structures */
-  //lines = compileCode(lines);
+  lines = compileCode(lines);
   
   posX = startX;
   posY = startY;
@@ -132,6 +132,9 @@ void draw() {
   int centerStartY = (height - 25*sizeY)/2;
   
   /* Execute commands, write board, draw */
+  
+  //Check conds
+  
   if(li < lines.length) {
     movePos(lines[li]);
     

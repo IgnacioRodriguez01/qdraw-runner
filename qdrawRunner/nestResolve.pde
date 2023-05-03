@@ -1,11 +1,11 @@
-String blocksTest(String[] linesArr) {
-  String regex, text, result;
+String[] nestResolve(String[] linesArr) {
+  String regex, text, textAlt;
   Pattern p;
   Matcher m;
   Block tempList[] = new Block[0];
   
   text = join(linesArr, "\n");
-  result = text;
+  textAlt = text;
   
   String progRegex = "programa\\s*\\{";
   String procRegex = "procedimiento\\s(\\w+\\(\\))\\s*\\{";
@@ -13,7 +13,9 @@ String blocksTest(String[] linesArr) {
   String condRegex = "si\\s*\\((.*?)\\)\\s+entonces\\s*\\{";
   
   //Openings and closings (Nesting processing)
-  for(int i = 0; i < 10; i++) { //Up to 10 nestings
+  boolean flag = true;
+  while(flag) {
+    flag = false;
     
     regex = progRegex + "|" + procRegex + "|" + loopRegex + "|" + condRegex + "|" + "\\}";
     p = Pattern.compile(regex, Pattern.DOTALL );
@@ -64,21 +66,24 @@ String blocksTest(String[] linesArr) {
             content = content + text.charAt(x);
           }
           block.content(content);
-          println(block.content);
           
           //Translate contents
           String label = String.format("$%s%d$", block.type, blockList.length-1);
           println(label);
-          result = result.replace(block.content, label);
+          flag = true; //If theres new nestings, continue
+          textAlt = textAlt.replace(block.content, label);
         }
         
         tempList = pop(tempList);
-        
       }
-    }
-    text = result;
-  }
-  println(result);
+      
+    }//while(m.find())
+
+    text = textAlt;
+  }//while(flag)
+  println(textAlt);
+  
+  String[] result = split(text, "\n");
   return result;
 }
 
