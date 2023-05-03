@@ -13,9 +13,10 @@
 /*       |__/      |___/                                        |___/               */
 /*                                                                                  */
 /*                                                                                  */
-/*                                                                                  */
-/*                                                                                  */
+/* Cambiar velocidad de ejecución:                                                  */
 /************************************************************************************/
+int velocity = 15;
+
 
 import java.util.Arrays;
 import java.util.regex.Pattern;
@@ -40,10 +41,25 @@ String[] punt = {"{", "}", "(", ")", "/*", "*/"};
 int x = 0;
 int y = 0;
 int li = 0;
-int frameRateValue = 2;
 
 /********************* Classes *********************/
 
+class Block {
+  int start, end;
+  String type, content;
+  void start(int s) {
+    start = s;
+  }
+  void end(int e) {
+    end = e;
+  }
+  void type(String t) {
+    type = t;
+  }
+  void content(String c) {
+    content = c;
+  }
+}
 class Prog {
   String code;
   void set(String c) {
@@ -68,6 +84,7 @@ class Loop {
 
 Proc procList[] = new Proc[32];
 Loop loopList[] = new Loop[32];
+Block blockList[] = new Block[0];
 
 /********************* Setup *********************/
 
@@ -75,12 +92,15 @@ void setup() {
   size(500, 500);
   background(255);
   stroke(#d8d8d8);
-  frameRate(frameRateValue);
+  frameRate(velocity);
 
   lines = loadStrings("qdraw.txt");
   
   /* Check syntax errors (WIP) */
   verifySyntax(lines);
+  
+  /* Read code structures */
+  lines = nestResolve(lines);
   
   /* Read code structures */
   readCode(lines);
@@ -112,6 +132,9 @@ void draw() {
   int centerStartY = (height - 25*sizeY)/2;
   
   /* Execute commands, write board, draw */
+  
+  //Check conds
+  
   if(li < lines.length) {
     movePos(lines[li]);
     
@@ -182,123 +205,6 @@ void startBoard(String input) {
 
 void verifySyntax(String[] linesArr) {
   
-}
-
-void readCode(String[] linesArr) {
-  String text, regex;
-  Pattern p;
-  Matcher m;
-  Prog prog;
-  
-  text = join(linesArr, "\n");
-  //println(text);}
-  int count = 0;
-  
-  //Program
-  regex = "programa\\s+\\{([\\s\\w()]+)\\}";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-  
-  m.find();
-  println("Prog" + count);
-  println(m.group(1)); //Code
-  
-  prog = new Prog();
-  prog.set(m.group(1));
-  
-  //Procedures
-  regex = "procedimiento\\s(\\w+)(?:\\(\\))\\s+\\{([\\s\\w()]+)\\}";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-
-  while(m.find()) {
-    println("Proc" + count);
-    println(m.group(1)); //Name
-    println(m.group(2)); //Code
-    
-    Proc obj = new Proc();
-    obj.set(m.group(1), m.group(2));
-    procList[count] = obj;
-
-    count++;
-  }
-  count = 0;
-  
-  //Loops
-  regex = "repetir\\s+(\\d+)\\s+veces\\s+\\{([\\s\\w()]+)\\}";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-
-  while(m.find()) {
-    println("Loop" + count);
-    println(m.group(1)); //N
-    println(m.group(2)); //Code
-    
-    Loop obj = new Loop();
-    obj.set(int(m.group(1)), m.group(2));
-    loopList[count] = obj;
-    
-    count++;
-  }
-  count = 0;
-}
-
-String[] compileCode(String[] linesArr) {
-  String text, regex;
-  Pattern p;
-  Matcher m;
-  text = join(linesArr, "\n");
-  //println(text);
-  
-  /* Program */
-  regex = "programa\\s+\\{([\\s\\w()]+)\\}";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-  m.find();
-  text = m.group(0);
-  
-  /* Comments */ 
-  regex = "\\/\\*[\\s\\w()]+\\*\\/";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-  while(m.find()) {
-    text = text.replace(m.group(0), "");
-  }
-  
-  /* Procedures */
-  for(int i = 0; i < procList.length; i++) {
-    if(procList[i] == null) {break;}
-    
-    regex = String.format("%s\\(\\)(?!\\s+\\{)", procList[i].name);
-
-    p = Pattern.compile(regex, Pattern.DOTALL );
-    m = p.matcher(text);
-    while(m.find()) {
-      text = text.replace(m.group(0), procList[i].name + procList[i].code);
-      println(text);
-    }
-  }
-  
-  /* Loops */
-  
-  
-  /*
-  //Empty lines 
-  text = text.trim();
-  regex = "^\\s*$";
-  p = Pattern.compile(regex, Pattern.MULTILINE );
-  m = p.matcher(text);
-  while(m.find()) {
-    text = text.replace(m.group(0), "");
-  }
-  */
-  
-  text = text.replace("}", "");
-  String[] result = split(text, "\n");
-  for(int i= 0; i< result.length; i++) {
-    println(result[i]);
-  }
-  return result;
 }
 
 /********************* Draw methods *********************/

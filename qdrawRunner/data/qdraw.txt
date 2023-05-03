@@ -1,5 +1,5 @@
-sizeX = 4
-sizeY = 4
+sizeX = 10
+sizeY = 10
 startX = 0
 startY = 0
 
