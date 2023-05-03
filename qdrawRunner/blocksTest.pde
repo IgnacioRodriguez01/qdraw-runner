@@ -64,11 +64,12 @@ String blocksTest(String[] linesArr) {
             content = content + text.charAt(x);
           }
           block.content(content);
+          println(block.content);
           
           //Translate contents
           String label = String.format("$%s%d$", block.type, blockList.length-1);
           println(label);
-          result = result.replace(block.content, label); //No actualiza sobre el mismo, sirve para una pasada.
+          result = result.replace(block.content, label);
         }
         
         tempList = pop(tempList);

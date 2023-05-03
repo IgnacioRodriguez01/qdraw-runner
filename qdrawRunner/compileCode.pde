@@ -15,6 +15,8 @@ String[] compileCode(String[] linesArr) {
   
   println(text);
   
+  //Separate between nested and not nested structures
+  
   /* Procedures */
   for(int i = 0; i < procList.length; i++) {
     if(procList[i] == null) {break;}

@@ -4,25 +4,21 @@ startX = 0
 startY = 0
 
 programa{
-	Iniciar()
 	repetir 3 veces {
 		PintarRojo
 		MoverArriba
 		
 	}
-	repetir 3 veces {
-		PintarRojo
-		MoverAbajo
-		
-	}
+	Iniciar()
 }
 
 procedimiento Iniciar(){
-	si (estaVacia?) entonces {
-  		repetir 2 veces {
-			PintarRojo
+	repetir 2 veces {
+		PintarRojo
+		MoverDerecha
+		repetir 2 veces {
+			PintarVerde
 			MoverArriba
-		
 		}
 	}
 	
