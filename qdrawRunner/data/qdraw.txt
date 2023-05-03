@@ -1,5 +1,5 @@
-sizeX = 4
-sizeY = 4
+sizeX = 10
+sizeY = 10
 startX = 0
 startY = 0
 
@@ -45,6 +45,7 @@ programa{
  celda que pinto, en la oreja.
  Precondición: Debe existir una celda arriba y una a la derecha de la celda
  actual*/
+ 
 
  PintarNegro
  MoverDerecha

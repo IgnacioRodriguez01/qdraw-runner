@@ -15,12 +15,15 @@
 /*                                                                                  */
 /*                                                                                  */
 /*                                                                                  */
+/*                                                                                  */
 /************************************************************************************/
 
 import java.util.Arrays;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import controlP5.*;
 
+ControlP5 cp5;
 String[] lines;
 int sizeX, sizeY, startX, startY, posX, posY;
 int[][] board;
@@ -37,13 +40,34 @@ String[] punt = {"{", "}", "(", ")", "/*", "*/"};
 //String[] prerec = {"sizeX", "sizeY", "startX", "startY"};
 
 /* Draw variables */
+int centerStartX, centerStartY;
+int squareSize;
 int x = 0;
 int y = 0;
 int li = 0;
-int frameRateValue = 2;
+boolean readCode = false;
+int velocity = 0;
+int currentTime = millis();
+int startTime = currentTime;
 
 /********************* Classes *********************/
 
+class Block {
+  int start, end;
+  String type, content;
+  void start(int s) {
+    start = s;
+  }
+  void end(int e) {
+    end = e;
+  }
+  void type(String t) {
+    type = t;
+  }
+  void content(String c) {
+    content = c;
+  }
+}
 class Prog {
   String code;
   void set(String c) {
@@ -68,29 +92,61 @@ class Loop {
 
 Proc procList[] = new Proc[32];
 Loop loopList[] = new Loop[32];
+Block blockList[] = new Block[0];
 
 /********************* Setup *********************/
 
 void setup() {
-  size(500, 500);
+  size(600, 600);
   background(255);
   stroke(#d8d8d8);
-  frameRate(frameRateValue);
-
+  frameRate(60);
+  cp5 = new ControlP5(this);
+  
+  /* Controllers */
+  cp5.addButton("playButton")
+     .setPosition(20,20)
+     .setSize(80,40)
+     .setColorBackground(color(#16de34))
+     .setColorForeground(color(#14c42d))
+     .setColorActive(color(#11ab27))
+     .setLabel("Play")
+     .setFont(createFont("", 15))
+     ;
+  cp5.addButton("stopButton")
+     .setPosition(120,20)
+     .setSize(80,40)
+     .setColorBackground(color(#de1616))
+     .setColorForeground(color(#c41414))
+     .setColorActive(color(#ab1111))
+     .setLabel("Stop")
+     .setFont(createFont("", 15))
+     ;
+  cp5.addSlider("velSlider")
+     .setPosition(220,20)
+     .setSize(200,40)
+     .setLabel("Velocity")
+     .setFont(createFont("", 15))
+     .setRange(1,10)
+     .setValue(5)
+     .setNumberOfTickMarks(10)
+     ;
+     
   lines = loadStrings("qdraw.txt");
   
   /* Check syntax errors (WIP) */
   verifySyntax(lines);
   
   /* Read code structures */
+  lines = nestResolve(lines);
+  
+  /* Read code structures */
   readCode(lines);
   
+  /* Initialize board */
   for (int i = 0 ; i < lines.length; i++) {
     startBoard(lines[i]);
-    //println(lines[i]);
   }
-
-  /* Initialize board */
   board = new color[sizeY][sizeX];
   for (int x = 0; x < sizeX; x++) {
     for (int y = 0; y < sizeY; y++) {
@@ -101,64 +157,77 @@ void setup() {
   /* Compile code structures */
   lines = compileCode(lines);
   
+  /* Initialize draw vars */
   posX = startX;
   posY = startY;
+  squareSize = min((height-130)/sizeY, (width-50)/sizeX);
+  
+  /* First grid draw */
+  renderGrid();
+  
 }
 
 /********************* Draw *********************/
 
 void draw() {
-  int centerStartX = (width - 25*sizeX)/2;
-  int centerStartY = (height - 25*sizeY)/2;
+  //Check conds
   
-  /* Execute commands, write board, draw */
-  if(li < lines.length) {
-    movePos(lines[li]);
-    
-    if(posX < 0 || posX > sizeX-1) {
-      println("Error: Fuera de límite en el eje X");
-      exit();
-    }
-    if(posY < 0 || posX > sizeY-1) {
-      println("Error: Fuera de límite en el eje Y");
-      exit();
-    }
-    board[posY][posX] = paint(lines[li], board[posY][posX]);
-    
-    background(255);
-    for (int x = 0; x < sizeX; x++) {
-      for (int y = 0; y < sizeY; y++) {
-        fill(board[y][x]);
-        stroke(#d8d8d8);
-        square(centerStartX + x*25, centerStartY + y*25, 25); //Variable size?
-      }
-    }
-    
-    textAlign(CENTER, BOTTOM);
-    fill(0);
-    text(lines[li], width/2, centerStartY + 25*sizeY + 25);
-    
-    strokeWeight(2);
-    noFill();
-    stroke(#03a9fc);
-    square(centerStartX + startX*25, centerStartY + startY*25, 25);
-    stroke(#ff7601);
-    square(centerStartX + posX*25, centerStartY + posY*25, 25);
-    strokeWeight(1);
-    
-    li++;
-    return;
+  /* Main Timer */
+  currentTime = millis(); // update timer
+
+  if (currentTime - startTime >= round(500/velocity-49)) {
+    main();
+    startTime = currentTime;  // reset timer
   }
-  
-  String text = String.format("Finalizado en (%d, %d)", posX, sizeY-posY-1);
-  textAlign(CENTER, BOTTOM);
-  fill(0);
-  text(text, width/2, centerStartY + 25*sizeY + 25);
-  
-  noLoop();
 }
+  
 
 /********************* Initialize methods *********************/
+
+void main() {
+  /* Execute commands, write board, draw */
+  
+  if(readCode && li < lines.length) {
+      textAlign(CENTER, BOTTOM);
+      
+      movePos(lines[li]);
+      
+      if(posX < 0 || posX > sizeX-1) {
+        fill(#c41414);
+        text("Error: Fuera de límite en el eje X", width/2, centerStartY + squareSize*(sizeY) + 50);
+        readCode = false;
+        return;
+      }
+      if(posY < 0 || posY > sizeY-1) {
+        fill(#c41414);
+        text("Error: Fuera de límite en el eje Y", width/2, centerStartY + squareSize*(sizeY) + 50);
+        readCode = false;
+        return;
+      }
+      board[posY][posX] = paint(lines[li], board[posY][posX]);
+      
+      renderGrid();
+      
+      
+      fill(0);
+      text(lines[li], width/2, centerStartY + squareSize*(sizeY) + 25);
+      
+      strokeWeight(2);
+      noFill();
+      stroke(#03a9fc);
+      square(centerStartX + startX*squareSize, centerStartY + startY*squareSize, squareSize);
+      stroke(#ff7601);
+      square(centerStartX + posX*squareSize, centerStartY + posY*squareSize, squareSize);
+      strokeWeight(1);
+      
+      li++;
+    } else if(readCode) {
+      String text = String.format("Finalizado en (%d, %d)", posX, sizeY-posY-1);
+      fill(0);
+      text(text, width/2, centerStartY + squareSize*(sizeY) + 25);
+      readCode = false;
+    }
+  }
 
 void startBoard(String input) {
   if(input.contains("sizeX")) {
@@ -184,126 +253,22 @@ void verifySyntax(String[] linesArr) {
   
 }
 
-void readCode(String[] linesArr) {
-  String text, regex;
-  Pattern p;
-  Matcher m;
-  Prog prog;
-  
-  text = join(linesArr, "\n");
-  //println(text);}
-  int count = 0;
-  
-  //Program
-  regex = "programa\\s+\\{([\\s\\w()]+)\\}";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-  
-  m.find();
-  println("Prog" + count);
-  println(m.group(1)); //Code
-  
-  prog = new Prog();
-  prog.set(m.group(1));
-  
-  //Procedures
-  regex = "procedimiento\\s(\\w+)(?:\\(\\))\\s+\\{([\\s\\w()]+)\\}";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-
-  while(m.find()) {
-    println("Proc" + count);
-    println(m.group(1)); //Name
-    println(m.group(2)); //Code
-    
-    Proc obj = new Proc();
-    obj.set(m.group(1), m.group(2));
-    procList[count] = obj;
-
-    count++;
-  }
-  count = 0;
-  
-  //Loops
-  regex = "repetir\\s+(\\d+)\\s+veces\\s+\\{([\\s\\w()]+)\\}";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-
-  while(m.find()) {
-    println("Loop" + count);
-    println(m.group(1)); //N
-    println(m.group(2)); //Code
-    
-    Loop obj = new Loop();
-    obj.set(int(m.group(1)), m.group(2));
-    loopList[count] = obj;
-    
-    count++;
-  }
-  count = 0;
-}
-
-String[] compileCode(String[] linesArr) {
-  String text, regex;
-  Pattern p;
-  Matcher m;
-  text = join(linesArr, "\n");
-  //println(text);
-  
-  /* Program */
-  regex = "programa\\s+\\{([\\s\\w()]+)\\}";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-  m.find();
-  text = m.group(0);
-  
-  /* Comments */ 
-  regex = "\\/\\*[\\s\\w()]+\\*\\/";
-  p = Pattern.compile(regex, Pattern.DOTALL );
-  m = p.matcher(text);
-  while(m.find()) {
-    text = text.replace(m.group(0), "");
-  }
-  
-  /* Procedures */
-  for(int i = 0; i < procList.length; i++) {
-    if(procList[i] == null) {break;}
-    
-    regex = String.format("%s\\(\\)(?!\\s+\\{)", procList[i].name);
-
-    p = Pattern.compile(regex, Pattern.DOTALL );
-    m = p.matcher(text);
-    while(m.find()) {
-      text = text.replace(m.group(0), procList[i].name + procList[i].code);
-      println(text);
-    }
-  }
-  
-  /* Loops */
-  
-  
-  /*
-  //Empty lines 
-  text = text.trim();
-  regex = "^\\s*$";
-  p = Pattern.compile(regex, Pattern.MULTILINE );
-  m = p.matcher(text);
-  while(m.find()) {
-    text = text.replace(m.group(0), "");
-  }
-  */
-  
-  text = text.replace("}", "");
-  String[] result = split(text, "\n");
-  for(int i= 0; i< result.length; i++) {
-    println(result[i]);
-  }
-  return result;
-}
-
 /********************* Draw methods *********************/
 
-public color paint(String input, color actual) {
+void renderGrid() {
+  background(255);
+  centerStartX = (width - squareSize*sizeX)/2;
+  centerStartY = (height - squareSize*sizeY)/2 + 10;
+  for (int x = 0; x < sizeX; x++) {
+    for (int y = 0; y < sizeY; y++) {
+      fill(board[y][x]);
+      stroke(#d8d8d8);
+      square(centerStartX + x*squareSize, centerStartY + y*squareSize, squareSize); //Variable size?
+    }
+  }
+}
+
+color paint(String input, color actual) {
   color colorOut = actual;
   
   if(input.contains(pn)) {
@@ -334,4 +299,39 @@ void movePos(String input) {
   if(input.contains(der)) {
       posX++;
   }
+}
+
+/********************* Controller Events *********************/
+
+void playButton() {
+  /* Clean grid */
+  board = new color[sizeY][sizeX];
+  for (int x = 0; x < sizeX; x++) {
+    for (int y = 0; y < sizeY; y++) {
+      board[y][x] = #FFFFFF;
+    }
+  }
+  renderGrid();
+  
+  posX = startX;
+  posY = startY;
+  li = 0;
+  readCode = true;
+}
+
+void stopButton() {
+  readCode = false;
+  
+  /* Clean grid */
+  board = new color[sizeY][sizeX];
+  for (int x = 0; x < sizeX; x++) {
+    for (int y = 0; y < sizeY; y++) {
+      board[y][x] = #FFFFFF;
+    }
+  }
+  renderGrid();
+}
+
+void velSlider(int value) {
+  velocity = value;
 }
